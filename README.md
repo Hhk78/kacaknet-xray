@@ -24,7 +24,7 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
     {
       "listen": "0.0.0.0",
       "port": 1234,
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "clients": [
           {
@@ -97,7 +97,7 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
   ],
   "outbounds": [
     {
-      "protocol": "vmess",
+      "protocol": "vless",
       "settings": {
         "vnext": [
           {
