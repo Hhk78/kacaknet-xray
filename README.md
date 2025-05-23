@@ -1,7 +1,4 @@
-```bash
-mkdir xray ; cd xray
-openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out certificate.crt
-```
+
 # Xray Senaryo 1 [WS over TLS (server-client)]
 ```bash
 {
@@ -22,10 +19,11 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
   },
   "inbounds": [
     {
-      "listen": "0.0.0.0",
-      "port": 1234,
+      "listen": "127.0.0.1",
+      "port": 65535,
       "protocol": "vless",
       "settings": {
+        "decryption": "none",
         "clients": [
           {
             "id": "742893b0-0532-49d6-a369-2826085b822d"
@@ -50,7 +48,12 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
   "outbounds": [
     {
       "protocol": "freedom",
-      "tag": "direct"
+      "tag": "direct",
+      "streamSettings": {
+        "sockopt": {
+          "mark": 100
+        }
+      }
     },
     {
       "protocol": "blackhole",
@@ -58,6 +61,7 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
     }
   ]
 }
+
 
 ```
 
@@ -101,12 +105,12 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
       "settings": {
         "vnext": [
           {
-            "address": "server-ip",
-            "port": 1234,
+            "address": "x.x.x.x",
+            "port": 443,
             "users": [
               {
                 "id": "742893b0-0532-49d6-a369-2826085b822d",
-                "security": "none"
+                "encryption": "none"
               }
             ]
           }
@@ -116,7 +120,7 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
         "network": "ws",
         "security": "tls",
         "tlsSettings": {
-          "serverName": "m.youtube.com",  // SNI spoofing burada istediginizi yazın
+          "serverName": "m.youtube.com",
           "fingerprint": "chrome",
           "allowInsecure": true
         }
@@ -130,4 +134,31 @@ openssl req -newkey rsa:2048 -nodes -keyout private.key -x509 -days 365 -out cer
   ]
 }
 
+
+```
+
+```bash
+<VirtualHost *:443>
+    ServerName m.youtube.com
+
+    SSLEngine On
+    SSLCertificateFile /root/xray-cert.pem
+    SSLCertificateKeyFile /root/xray-key.pem
+
+    SSLProxyEngine On
+    SSLProxyVerify none
+    SSLProxyCheckPeerCN off
+    SSLProxyCheckPeerName off
+    SSLProxyCheckPeerExpire off
+
+    RewriteEngine On
+    RewriteCond %{HTTP:Upgrade} =websocket [NC]
+    RewriteRule /(.*) wss://localhost:65535/$1 [P,L]
+
+    ProxyPass / https://127.0.0.1:65535
+    ProxyPassReverse / https://127.0.0.1:65535
+</VirtualHost>
+```
+```bash
+openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout /root/xray-key.pem -out /root/xray-cert.pem
 ```
